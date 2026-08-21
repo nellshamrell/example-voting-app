@@ -17,8 +17,14 @@ io.on('connection', function (socket) {
   });
 });
 
+var postgresSslMode = process.env.POSTGRES_SSLMODE || 'disable';
 var pool = new Pool({
-  connectionString: 'postgres://postgres:postgres@db/postgres'
+  host: process.env.POSTGRES_HOST || 'db',
+  port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+  user: process.env.POSTGRES_USER || 'postgres',
+  password: process.env.POSTGRES_PASSWORD || 'postgres',
+  database: process.env.POSTGRES_DB || 'postgres',
+  ssl: postgresSslMode === 'require' ? { rejectUnauthorized: false } : false
 });
 
 async.retry(
