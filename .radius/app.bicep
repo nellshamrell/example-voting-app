@@ -24,7 +24,7 @@ resource postgresDb 'Radius.Data/postgreSqlDatabases@2025-08-01-preview' = {
     environment: environment
     application: exampleVotingAppApp.id
     codeReference: 'docker-compose.yml#L64'
-    database: 'postgres'
+    database: 'voting'
     password: postgresPassword
     username: 'postgres'
   }
@@ -61,9 +61,9 @@ resource resultImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
     environment: environment
     application: exampleVotingAppApp.id
     codeReference: 'result/Dockerfile#L1'
-    tag: '63e9150'
+    tag: '1963aa3'
     build: {
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//result?ref=63e9150ca17af4ed05880d4245e486481f73fcb4'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//result?ref=1963aa3305def5f99e7bf0cd31d06f2be1e5e829'
       platforms: [
         'linux/amd64'
       ]
@@ -80,9 +80,9 @@ resource voteImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
     environment: environment
     application: exampleVotingAppApp.id
     codeReference: 'vote/Dockerfile#L1'
-    tag: '63e9150'
+    tag: '1963aa3'
     build: {
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//vote?ref=63e9150ca17af4ed05880d4245e486481f73fcb4'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//vote?ref=1963aa3305def5f99e7bf0cd31d06f2be1e5e829'
       platforms: [
         'linux/amd64'
       ]
@@ -99,9 +99,9 @@ resource workerImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
     environment: environment
     application: exampleVotingAppApp.id
     codeReference: 'worker/Dockerfile#L11'
-    tag: '63e9150'
+    tag: '1963aa3'
     build: {
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//worker?ref=63e9150ca17af4ed05880d4245e486481f73fcb4'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//worker?ref=1963aa3305def5f99e7bf0cd31d06f2be1e5e829'
       platforms: [
         'linux/amd64'
       ]
@@ -121,6 +121,26 @@ resource resultContainer 'Radius.Compute/containers@2025-08-01-preview' = {
     containers: {
       result: {
         image: resultImage.properties.imageReference
+        env: {
+          POSTGRES_HOST: {
+            value: postgresDb.properties.host
+          }
+          POSTGRES_PORT: {
+            value: '5432'
+          }
+          POSTGRES_USER: {
+            value: 'postgres'
+          }
+          POSTGRES_PASSWORD: {
+            value: postgresPassword
+          }
+          POSTGRES_DB: {
+            value: 'voting'
+          }
+          POSTGRES_SSLMODE: {
+            value: 'require'
+          }
+        }
         ports: {
           web: {
             containerPort: 80
@@ -129,9 +149,6 @@ resource resultContainer 'Radius.Compute/containers@2025-08-01-preview' = {
       }
     }
   }
-  dependsOn: [
-    postgresDb
-  ]
 }
 
 resource voteContainer 'Radius.Compute/containers@2025-08-01-preview' = {
@@ -143,6 +160,16 @@ resource voteContainer 'Radius.Compute/containers@2025-08-01-preview' = {
     containers: {
       vote: {
         image: voteImage.properties.imageReference
+        env: {
+          REDIS_URL: {
+            valueFrom: {
+              secretKeyRef: {
+                secretName: redisCache.properties.secrets.name
+                key: 'url'
+              }
+            }
+          }
+        }
         ports: {
           web: {
             containerPort: 80
@@ -151,9 +178,6 @@ resource voteContainer 'Radius.Compute/containers@2025-08-01-preview' = {
       }
     }
   }
-  dependsOn: [
-    redisCache
-  ]
 }
 
 resource workerContainer 'Radius.Compute/containers@2025-08-01-preview' = {
@@ -165,13 +189,37 @@ resource workerContainer 'Radius.Compute/containers@2025-08-01-preview' = {
     containers: {
       worker: {
         image: workerImage.properties.imageReference
+        env: {
+          POSTGRES_HOST: {
+            value: postgresDb.properties.host
+          }
+          POSTGRES_PORT: {
+            value: '5432'
+          }
+          POSTGRES_USER: {
+            value: 'postgres'
+          }
+          POSTGRES_PASSWORD: {
+            value: postgresPassword
+          }
+          POSTGRES_DB: {
+            value: 'voting'
+          }
+          POSTGRES_SSLMODE: {
+            value: 'require'
+          }
+          REDIS_URL: {
+            valueFrom: {
+              secretKeyRef: {
+                secretName: redisCache.properties.secrets.name
+                key: 'url'
+              }
+            }
+          }
+        }
       }
     }
   }
-  dependsOn: [
-    postgresDb
-    redisCache
-  ]
 }
 
 resource resultRoute 'Radius.Compute/routes@2025-08-01-preview' = {
