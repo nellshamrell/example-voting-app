@@ -34,6 +34,7 @@ namespace Worker
                     // Reconnect redis if down
                     if (redisConn == null || !redisConn.IsConnected) {
                         Console.WriteLine("Reconnecting Redis");
+                        redisConn?.Dispose();
                         redisConn = OpenRedisConnection();
                         redis = redisConn.GetDatabase();
                     }
@@ -128,7 +129,18 @@ namespace Worker
             var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
             if (!string.IsNullOrEmpty(redisUrl))
             {
-                return OpenRedisUrl(redisUrl);
+                while (true)
+                {
+                    try
+                    {
+                        return OpenRedisUrl(redisUrl);
+                    }
+                    catch (RedisConnectionException)
+                    {
+                        Console.Error.WriteLine("Waiting for redis");
+                        Thread.Sleep(1000);
+                    }
+                }
             }
 
             var hostname = GetEnvironmentVariable("REDIS_HOST", "redis");
@@ -154,24 +166,30 @@ namespace Worker
 
         private static ConnectionMultiplexer OpenRedisUrl(string redisUrl)
         {
-            var uri = new Uri(redisUrl);
+            var schemeSeparator = redisUrl.IndexOf("://", StringComparison.Ordinal);
+            var scheme = redisUrl.Substring(0, schemeSeparator);
+            var address = redisUrl.Substring(schemeSeparator + 3);
+            var atSeparator = address.LastIndexOf('@');
+            var credentials = address.Substring(0, atSeparator);
+            var endpoint = address.Substring(atSeparator + 1);
+            var credentialSeparator = credentials.IndexOf(':');
+            var username = credentials.Substring(0, credentialSeparator);
+            var password = credentials.Substring(credentialSeparator + 1);
+            var portSeparator = endpoint.LastIndexOf(':');
+            var hostname = endpoint.Substring(0, portSeparator);
+            var port = int.Parse(endpoint.Substring(portSeparator + 1));
+
             var options = new ConfigurationOptions
             {
-                Ssl = uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase),
-                AbortOnConnectFail = false
+                Ssl = scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase)
             };
-            options.EndPoints.Add(uri.Host, uri.Port);
+            options.EndPoints.Add(hostname, port);
 
-            var separator = uri.UserInfo.IndexOf(':');
-            if (separator >= 0)
+            if (!string.IsNullOrEmpty(username))
             {
-                var username = Uri.UnescapeDataString(uri.UserInfo.Substring(0, separator));
-                if (!string.IsNullOrEmpty(username))
-                {
-                    options.User = username;
-                }
-                options.Password = Uri.UnescapeDataString(uri.UserInfo.Substring(separator + 1));
+                options.User = username;
             }
+            options.Password = password;
 
             return ConnectionMultiplexer.Connect(options);
         }

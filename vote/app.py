@@ -20,7 +20,19 @@ def get_redis():
     if not hasattr(g, 'redis'):
         redis_url = os.getenv("REDIS_URL")
         if redis_url:
-            g.redis = Redis.from_url(redis_url, db=0, socket_timeout=5)
+            scheme, address = redis_url.split("://", 1)
+            credentials, endpoint = address.rsplit("@", 1)
+            username, password = credentials.split(":", 1)
+            host, port = endpoint.rsplit(":", 1)
+            g.redis = Redis(
+                host=host,
+                port=int(port),
+                username=username or None,
+                password=password,
+                ssl=scheme == "rediss",
+                db=0,
+                socket_timeout=5
+            )
         else:
             g.redis = Redis(
                 host=os.getenv("REDIS_HOST", "redis"),
