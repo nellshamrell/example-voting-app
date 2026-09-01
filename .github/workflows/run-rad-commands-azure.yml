@@ -112,6 +112,9 @@ jobs:
             --name "${{ vars.AZURE_AKS_CLUSTER_NAME }}" \
             --subscription "${{ vars.AZURE_SUBSCRIPTION_ID }}" \
             --file "$RADIUS_TARGET_KUBECONFIG"
+          kubelogin convert-kubeconfig \
+            --login azurecli \
+            --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
         uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@1436a78b181e21eb75717d93878b1302392b3a72
