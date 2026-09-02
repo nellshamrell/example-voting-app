@@ -106,7 +106,7 @@ jobs:
             --file "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
-        uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@b3047e648bd839ef1232c3340369c94414ea078b
 
       - name: Project cloud OIDC tokens into Radius pods
         run: |
@@ -164,7 +164,7 @@ jobs:
 
       - name: Restore Radius state
         id: restore-state
-        uses: radius-project/ai-extensions/.github/extension/actions/restore-state@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/restore-state@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           namespace: ${{ vars.KUBERNETES_NAMESPACE || 'default' }}
 
@@ -181,7 +181,7 @@ jobs:
           echo "✅ Cloud credentials registered with Radius."
 
       - name: Delete Radius resource
-        uses: radius-project/ai-extensions/.github/extension/actions/delete-resource@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/delete-resource@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           resource-type: ${{ inputs.resource_type }}
           name: ${{ inputs.name }}
@@ -190,7 +190,7 @@ jobs:
 
       - name: Clean up unused routes Gateway infrastructure
         if: ${{ inputs.resource_type == 'application' }}
-        uses: radius-project/ai-extensions/.github/extension/actions/manage-routes-gateway@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/manage-routes-gateway@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           mode: cleanup
           target-kubeconfig: ${{ env.RADIUS_TARGET_KUBECONFIG }}
@@ -203,6 +203,6 @@ jobs:
 
       - name: Teardown
         if: always()
-        uses: radius-project/ai-extensions/.github/extension/actions/teardown@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/teardown@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           state-restored: ${{ steps.restore-state.outputs.state-restored }}
