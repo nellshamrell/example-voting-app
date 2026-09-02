@@ -113,22 +113,6 @@ jobs:
             --subscription "${{ vars.AZURE_SUBSCRIPTION_ID }}" \
             --file "$RADIUS_TARGET_KUBECONFIG"
 
-          CONTEXT_NAME=$(kubectl config current-context --kubeconfig "$RADIUS_TARGET_KUBECONFIG")
-          USER_NAME=$(kubectl config view --raw --kubeconfig "$RADIUS_TARGET_KUBECONFIG" -o json |
-            jq -r --arg context "$CONTEXT_NAME" '.contexts[] | select(.name == $context) | .context.user')
-          AKS_TOKEN=$(az account get-access-token \
-            --resource 6dae42f8-4368-4678-94ff-3960e28e3630 \
-            --query accessToken \
-            --output tsv)
-
-          TOKEN_KUBECONFIG=$(mktemp)
-          kubectl config view --raw --kubeconfig "$RADIUS_TARGET_KUBECONFIG" -o json |
-            jq --arg user "$USER_NAME" --arg token "$AKS_TOKEN" '
-              (.users[] | select(.name == $user).user) |=
-                (del(.exec, ."auth-provider") + {token: $token})
-            ' > "$TOKEN_KUBECONFIG"
-          mv "$TOKEN_KUBECONFIG" "$RADIUS_TARGET_KUBECONFIG"
-
       - name: Set up control plane
         uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@b3047e648bd839ef1232c3340369c94414ea078b
 
