@@ -121,11 +121,13 @@ jobs:
             --query accessToken \
             --output tsv)
 
-          kubectl config unset "users.${USER_NAME}.user.exec" \
-            --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
-          kubectl config set-credentials "$USER_NAME" \
-            --token="$AKS_TOKEN" \
-            --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
+          TOKEN_KUBECONFIG=$(mktemp)
+          kubectl config view --raw --kubeconfig "$RADIUS_TARGET_KUBECONFIG" -o json |
+            jq --arg user "$USER_NAME" --arg token "$AKS_TOKEN" '
+              (.users[] | select(.name == $user).user) |=
+                (del(.exec, ."auth-provider") + {token: $token})
+            ' > "$TOKEN_KUBECONFIG"
+          mv "$TOKEN_KUBECONFIG" "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
         uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@b3047e648bd839ef1232c3340369c94414ea078b
