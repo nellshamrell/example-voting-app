@@ -118,8 +118,22 @@ jobs:
             --name "${{ vars.AZURE_AKS_CLUSTER_NAME }}" \
             --subscription "${{ vars.AZURE_SUBSCRIPTION_ID }}" \
             --file "$RADIUS_TARGET_KUBECONFIG"
-          kubelogin convert-kubeconfig \
-            --login azurecli \
+
+          # Radius mounts this kubeconfig into its control-plane pods, where the
+          # kubelogin exec plugin is unavailable. Replace the exec credential with
+          # the short-lived AKS token from this workflow's Azure OIDC session.
+          AKS_USER=$(kubectl config view \
+            --kubeconfig "$RADIUS_TARGET_KUBECONFIG" \
+            --minify \
+            -o jsonpath='{.contexts[0].context.user}')
+          AKS_TOKEN=$(az account get-access-token \
+            --resource 6dae42f8-4368-4678-94ff-3960e28e3630 \
+            --query accessToken \
+            --output tsv)
+          kubectl config delete-user "$AKS_USER" \
+            --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
+          kubectl config set-credentials "$AKS_USER" \
+            --token "$AKS_TOKEN" \
             --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
