@@ -75,7 +75,13 @@ namespace Worker
                 Port = int.Parse(Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432"),
                 Database = Environment.GetEnvironmentVariable("POSTGRES_DATABASE") ?? "postgres",
                 Username = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres",
-                Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "postgres"
+                Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "postgres",
+                SslMode = string.Equals(
+                    Environment.GetEnvironmentVariable("POSTGRES_SSL"),
+                    "true",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? SslMode.Require
+                    : SslMode.Prefer
             }.ConnectionString;
 
             while (true)
