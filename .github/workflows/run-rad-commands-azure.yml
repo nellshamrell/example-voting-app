@@ -104,12 +104,6 @@ jobs:
           fi
           mkdir -p "$(dirname "$RADIUS_TARGET_KUBECONFIG")"
 
-      - name: Set up kubelogin
-        if: ${{ vars.AZURE_AKS_CLUSTER_NAME != '' }}
-        uses: azure/use-kubelogin@0ce7c36141aa27d4934872cf00b0120804c98a29 # v1.3
-        with:
-          kubelogin-version: 'v0.2.19'
-
       - name: Connect to AKS cluster
         if: ${{ vars.AZURE_AKS_CLUSTER_NAME != '' }}
         run: |
@@ -118,8 +112,19 @@ jobs:
             --name "${{ vars.AZURE_AKS_CLUSTER_NAME }}" \
             --subscription "${{ vars.AZURE_SUBSCRIPTION_ID }}" \
             --file "$RADIUS_TARGET_KUBECONFIG"
-          kubelogin convert-kubeconfig \
-            --login azurecli \
+
+          CONTEXT_NAME=$(kubectl config current-context --kubeconfig "$RADIUS_TARGET_KUBECONFIG")
+          USER_NAME=$(kubectl config view --raw --kubeconfig "$RADIUS_TARGET_KUBECONFIG" -o json |
+            jq -r --arg context "$CONTEXT_NAME" '.contexts[] | select(.name == $context) | .context.user')
+          AKS_TOKEN=$(az account get-access-token \
+            --resource 6dae42f8-4368-4678-94ff-3960e28e3630 \
+            --query accessToken \
+            --output tsv)
+
+          kubectl config unset "users.${USER_NAME}.user.exec" \
+            --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
+          kubectl config set-credentials "$USER_NAME" \
+            --token="$AKS_TOKEN" \
             --kubeconfig "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
