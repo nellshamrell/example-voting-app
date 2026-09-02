@@ -16,8 +16,8 @@ namespace Worker
         {
             try
             {
-                var pgsql = OpenDbConnection("Server=db;Username=postgres;Password=postgres;");
-                var redisConn = OpenRedisConnection("redis");
+                var pgsql = OpenDbConnection();
+                var redisConn = OpenRedisConnection();
                 var redis = redisConn.GetDatabase();
 
                 // Keep alive is not implemented in Npgsql yet. This workaround was recommended:
@@ -34,7 +34,7 @@ namespace Worker
                     // Reconnect redis if down
                     if (redisConn == null || !redisConn.IsConnected) {
                         Console.WriteLine("Reconnecting Redis");
-                        redisConn = OpenRedisConnection("redis");
+                        redisConn = OpenRedisConnection();
                         redis = redisConn.GetDatabase();
                     }
                     string json = redis.ListLeftPopAsync("votes").Result;
@@ -46,7 +46,7 @@ namespace Worker
                         if (!pgsql.State.Equals(System.Data.ConnectionState.Open))
                         {
                             Console.WriteLine("Reconnecting DB");
-                            pgsql = OpenDbConnection("Server=db;Username=postgres;Password=postgres;");
+                            pgsql = OpenDbConnection();
                         }
                         else
                         { // Normal +1 vote requested
@@ -66,9 +66,17 @@ namespace Worker
             }
         }
 
-        private static NpgsqlConnection OpenDbConnection(string connectionString)
+        private static NpgsqlConnection OpenDbConnection()
         {
             NpgsqlConnection connection;
+            var connectionString = new NpgsqlConnectionStringBuilder
+            {
+                Host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "db",
+                Port = int.Parse(Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432"),
+                Database = Environment.GetEnvironmentVariable("POSTGRES_DATABASE") ?? "postgres",
+                Username = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres",
+                Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "postgres"
+            }.ConnectionString;
 
             while (true)
             {
@@ -102,18 +110,19 @@ namespace Worker
             return connection;
         }
 
-        private static ConnectionMultiplexer OpenRedisConnection(string hostname)
+        private static ConnectionMultiplexer OpenRedisConnection()
         {
-            // Use IP address to workaround https://github.com/StackExchange/StackExchange.Redis/issues/410
-            var ipAddress = GetIp(hostname);
-            Console.WriteLine($"Found redis at {ipAddress}");
+            var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+            var configuration = string.IsNullOrWhiteSpace(redisUrl)
+                ? ConfigurationOptions.Parse(GetIp("redis").ToString())
+                : ParseRedisUrl(redisUrl);
 
             while (true)
             {
                 try
                 {
                     Console.Error.WriteLine("Connecting to redis");
-                    return ConnectionMultiplexer.Connect(ipAddress);
+                    return ConnectionMultiplexer.Connect(configuration);
                 }
                 catch (RedisConnectionException)
                 {
@@ -121,6 +130,27 @@ namespace Worker
                     Thread.Sleep(1000);
                 }
             }
+        }
+
+        private static ConfigurationOptions ParseRedisUrl(string redisUrl)
+        {
+            var uri = new Uri(redisUrl);
+            var configuration = new ConfigurationOptions
+            {
+                Ssl = uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase)
+            };
+
+            configuration.EndPoints.Add(uri.Host, uri.IsDefaultPort ? 6379 : uri.Port);
+            if (!string.IsNullOrEmpty(uri.UserInfo))
+            {
+                var separator = uri.UserInfo.IndexOf(':');
+                var encodedPassword = separator >= 0
+                    ? uri.UserInfo.Substring(separator + 1)
+                    : uri.UserInfo;
+                configuration.Password = Uri.UnescapeDataString(encodedPassword);
+            }
+
+            return configuration;
         }
 
         private static string GetIp(string hostname)
