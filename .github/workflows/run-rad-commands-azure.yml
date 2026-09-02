@@ -114,10 +114,10 @@ jobs:
             --file "$RADIUS_TARGET_KUBECONFIG"
 
       - name: Set up control plane
-        uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/setup-control-plane@b3047e648bd839ef1232c3340369c94414ea078b
 
       - name: Load Radius contrib catalog
-        uses: radius-project/ai-extensions/.github/extension/actions/load-contrib-catalog@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/load-contrib-catalog@b3047e648bd839ef1232c3340369c94414ea078b
 
       - name: Project cloud OIDC tokens into Radius pods
         run: |
@@ -198,7 +198,7 @@ jobs:
 
       - name: Restore Radius state
         id: restore-state
-        uses: radius-project/ai-extensions/.github/extension/actions/restore-state@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/restore-state@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           namespace: ${{ vars.KUBERNETES_NAMESPACE || 'default' }}
 
@@ -345,13 +345,13 @@ jobs:
           echo "✅ Environment '$ENVIRONMENT' created with recipe pack."
 
       - name: Apply custom recipe packs
-        uses: radius-project/ai-extensions/.github/extension/actions/apply-custom-recipe-packs@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/apply-custom-recipe-packs@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           environment: ${{ inputs.environment }}
           app-file: ${{ env.APP_FILE }}
 
       - name: Ensure routes Gateway infrastructure
-        uses: radius-project/ai-extensions/.github/extension/actions/manage-routes-gateway@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/manage-routes-gateway@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           mode: ensure
           target-kubeconfig: ${{ env.RADIUS_TARGET_KUBECONFIG }}
@@ -363,10 +363,10 @@ jobs:
           exposure: ${{ vars.RADIUS_ROUTES_EXPOSURE }}
 
       - name: Prepare live deployment progress
-        uses: radius-project/ai-extensions/.github/extension/actions/deploy-progress/artifact-uploader@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/deploy-progress/artifact-uploader@b3047e648bd839ef1232c3340369c94414ea078b
 
       - name: Run rad commands
-        uses: radius-project/ai-extensions/.github/extension/actions/run-rad-commands@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/run-rad-commands@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           environment: ${{ inputs.environment }}
           app-file: ${{ env.APP_FILE }}
@@ -386,13 +386,13 @@ jobs:
       # cancellation, where the control plane is already being torn down.
       - name: Publish deployed graph and status
         if: ${{ !cancelled() }}
-        uses: radius-project/ai-extensions/.github/extension/actions/publish-deploy-status@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/publish-deploy-status@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           environment: ${{ inputs.environment }}
           app-file: ${{ env.APP_FILE }}
 
       - name: Teardown
         if: always()
-        uses: radius-project/ai-extensions/.github/extension/actions/teardown@1436a78b181e21eb75717d93878b1302392b3a72
+        uses: radius-project/ai-extensions/.github/extension/actions/teardown@b3047e648bd839ef1232c3340369c94414ea078b
         with:
           state-restored: ${{ steps.restore-state.outputs.state-restored }}
