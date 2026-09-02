@@ -80,7 +80,7 @@ resource resultImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
       platforms: [
         'linux/amd64'
       ]
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//result?ref=8c7fa1147dcc09d06a75c45397353812a5421e7a'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//result?ref=16a6fe1d34edc26b59f7ba966e4277d4695e932b'
     }
   }
   dependsOn: [
@@ -98,7 +98,7 @@ resource voteImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
       platforms: [
         'linux/amd64'
       ]
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//vote?ref=8c7fa1147dcc09d06a75c45397353812a5421e7a'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//vote?ref=16a6fe1d34edc26b59f7ba966e4277d4695e932b'
     }
   }
   dependsOn: [
@@ -113,7 +113,7 @@ resource workerImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
     application: exampleVotingApp.id
     codeReference: 'worker/Dockerfile#L1'
     build: {
-      source: 'git::https://github.com/nellshamrell/example-voting-app.git//worker?ref=8c7fa1147dcc09d06a75c45397353812a5421e7a'
+      source: 'git::https://github.com/nellshamrell/example-voting-app.git//worker?ref=16a6fe1d34edc26b59f7ba966e4277d4695e932b'
     }
   }
   dependsOn: [
@@ -126,7 +126,7 @@ resource resultContainer 'Radius.Compute/containers@2025-08-01-preview' = {
   properties: {
     environment: environment
     application: exampleVotingApp.id
-    codeReference: 'result/server.js#L78'
+    codeReference: 'result/server.js#L79'
     containers: {
       result: {
         image: resultImage.properties.imageReference
